@@ -3,6 +3,13 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApiError } from '../../common/errors/api-error';
+import { ErrorCode } from '../../common/errors/error-codes';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -13,19 +20,39 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'maisbloco-secret-key',
+      secretOrKey:
+        configService.get<string>('JWT_SECRET') || 'maisbloco-secret-key',
     });
   }
 
-  async validate(payload: { sub: string; email: string }) {
+  async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        status: true,
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException();
     }
 
-    return { sub: payload.sub, email: payload.email };
+    if (user.status !== 'ACTIVE') {
+      throw new ApiError(
+        ErrorCode.AUTH_ACCOUNT_BLOCKED,
+        'Sua conta está bloqueada. Entre em contato com o suporte do MaisBloco.',
+        403,
+      );
+    }
+
+    return {
+      sub: user.id,
+      email: user.email,
+      username: user.username,
+      userStatus: user.status,
+    };
   }
 }
