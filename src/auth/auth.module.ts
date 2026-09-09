@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule } from '@nestjs/config';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './strategies/jwt.strategy';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET || 'maisbloco-secret-key',
+      signOptions: { expiresIn: '15m' },
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService, JwtModule],
+})
+export class AuthModule {}
