@@ -30,6 +30,14 @@ enum GroupMemberRole {
   MEMBER
 }
 
+enum GroupInviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
 enum EventStatus {
   UPCOMING
   LIVE
@@ -53,21 +61,21 @@ enum MessageReactionType {
 }
 
 model User {
-  id           String     @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
   nickname     String?
-  username     String     @unique
-  email        String     @unique
+  username     String    @unique
+  email        String    @unique
   passwordHash String?
-  cpf          String?    @unique
-  phone        String?    @unique
+  cpf          String?   @unique
+  phone        String?   @unique
   birthDate    DateTime?
   avatar       String?
   city         String?
 
-  status          UserStatus @default(ACTIVE)
-  authProvider    AuthProvider @default(LOCAL)
-  authProviderId  String?
+  status         UserStatus   @default(ACTIVE)
+  authProvider   AuthProvider @default(LOCAL)
+  authProviderId String?
 
   failedLoginAttempts Int       @default(0)
   blockedUntil        DateTime?
@@ -79,26 +87,28 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  friendshipsRequested  Friendship[] @relation("Requester")
-  friendshipsReceived   Friendship[] @relation("Receiver")
-  groupMemberships      GroupMember[]
-  ownedGroups           Group[]      @relation("GroupOwner")
-  sentMessages          Message[]    @relation("MessageSender")
-  eventParticipants     EventParticipant[]
-  location              Location?
-  notifications         Notification[]
-  refreshTokens         RefreshToken[]
-  passwordResetTokens   PasswordResetToken[]
-  blockedUsers          Block[]      @relation("Blocker")
-  blockedByUsers        Block[]      @relation("Blocked")
-  reports               Report[]     @relation("Reporter")
-  reportedByUsers       Report[]     @relation("Reported")
-  meetingPointCreated   MeetingPoint[]
-  meetingPointShared    MeetingPointShare[]
-  reactions             MessageReaction[]
-  pinnedMessages        PinnedMessage[]
-  favorites             Favorite[]
-  conversations         ConversationParticipant[]
+  friendshipsRequested Friendship[]              @relation("Requester")
+  friendshipsReceived  Friendship[]              @relation("Receiver")
+  groupMemberships     GroupMember[]
+  ownedGroups          Group[]                   @relation("GroupOwner")
+  groupInvitesSent     GroupInvite[]             @relation("GroupInviteInviter")
+  groupInvitesReceived GroupInvite[]             @relation("GroupInviteInvitee")
+  sentMessages         Message[]                 @relation("MessageSender")
+  eventParticipants    EventParticipant[]
+  location             Location?
+  notifications        Notification[]
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  blockedUsers         Block[]                   @relation("Blocker")
+  blockedByUsers       Block[]                   @relation("Blocked")
+  reports              Report[]                  @relation("Reporter")
+  reportedByUsers      Report[]                  @relation("Reported")
+  meetingPointCreated  MeetingPoint[]
+  meetingPointShared   MeetingPointShare[]
+  reactions            MessageReaction[]
+  pinnedMessages       PinnedMessage[]
+  favorites            Favorite[]
+  conversations        ConversationParticipant[]
 
   @@index([cpf])
   @@index([phone])
@@ -172,6 +182,7 @@ model Group {
 
   owner   User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members GroupMember[]
+  invites GroupInvite[]
   chat    GroupChat?
 
   @@index([ownerId])
@@ -192,13 +203,33 @@ model GroupMember {
   @@index([userId])
 }
 
+model GroupInvite {
+  id        String            @id @default(cuid())
+  groupId   String
+  inviterId String
+  inviteeId String
+  status    GroupInviteStatus @default(PENDING)
+  expiresAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter User  @relation("GroupInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User  @relation("GroupInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, inviteeId, status])
+  @@index([inviteeId, status])
+  @@index([groupId])
+  @@index([inviterId])
+}
+
 model GroupChat {
   id        String   @id @default(cuid())
   groupId   String   @unique
   createdAt DateTime @default(now())
 
-  group       Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  messages    Message[]
+  group          Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  messages       Message[]
   pinnedMessages PinnedMessage[]
 
   @@index([groupId])
@@ -229,7 +260,7 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   content        String?
   imageUrl       String?
   locationShare  Json?
@@ -237,14 +268,14 @@ model Message {
   groupChatId    String?
   senderId       String
   replyToId      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  groupChat    GroupChat?    @relation(fields: [groupChatId], references: [id], onDelete: Cascade)
-  sender       User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo      Message?      @relation("ReplyTo", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies      Message[]     @relation("ReplyTo")
+  conversation Conversation?     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  groupChat    GroupChat?        @relation(fields: [groupChatId], references: [id], onDelete: Cascade)
+  sender       User              @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?          @relation("ReplyTo", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]         @relation("ReplyTo")
   reactions    MessageReaction[]
   pinnedBy     PinnedMessage[]
 
@@ -254,11 +285,11 @@ model Message {
 }
 
 model MessageReaction {
-  id        String            @id @default(cuid())
+  id        String              @id @default(cuid())
   messageId String
   userId    String
   type      MessageReactionType
-  createdAt DateTime          @default(now())
+  createdAt DateTime            @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -268,40 +299,40 @@ model MessageReaction {
 }
 
 model PinnedMessage {
-  id        String   @id @default(cuid())
-  messageId String
-  userId    String
+  id          String   @id @default(cuid())
+  messageId   String
+  userId      String
   groupChatId String
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 
-  message    Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  groupChat  GroupChat  @relation(fields: [groupChatId], references: [id], onDelete: Cascade)
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupChat GroupChat @relation(fields: [groupChatId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, groupChatId])
 }
 
 model Event {
-  id               String      @id @default(cuid())
-  name             String
-  description      String?
-  coverImage       String?
-  latitude         Float
-  longitude        Float
-  address          String?
-  startAt          DateTime
-  endAt            DateTime?
-  category         String?
-  status           EventStatus @default(UPCOMING)
-  estimatedPeople  Int?
-  externalLink     String?
-  isPaid           Boolean     @default(false)
-  price            Float?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  coverImage      String?
+  latitude        Float
+  longitude       Float
+  address         String?
+  startAt         DateTime
+  endAt           DateTime?
+  category        String?
+  status          EventStatus @default(UPCOMING)
+  estimatedPeople Int?
+  externalLink    String?
+  isPaid          Boolean     @default(false)
+  price           Float?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  participants EventParticipant[]
-  favorites    Favorite[]
+  participants  EventParticipant[]
+  favorites     Favorite[]
   meetingPoints MeetingPoint[]
 
   @@index([startAt])
@@ -366,10 +397,10 @@ model MeetingPoint {
 }
 
 model MeetingPointShare {
-  id              String @id @default(cuid())
-  meetingPointId  String
-  sharedWithId    String
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  meetingPointId String
+  sharedWithId   String
+  createdAt      DateTime @default(now())
 
   meetingPoint MeetingPoint @relation(fields: [meetingPointId], references: [id], onDelete: Cascade)
   sharedWith   User         @relation(fields: [sharedWithId], references: [id], onDelete: Cascade)
@@ -387,8 +418,8 @@ model Report {
   resolved    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  reporter User    @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported User?   @relation("Reported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reporter User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User? @relation("Reported", fields: [reportedId], references: [id], onDelete: SetNull)
 
   @@index([reporterId])
   @@index([resolved])
