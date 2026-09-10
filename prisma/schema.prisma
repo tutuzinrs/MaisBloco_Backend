@@ -13,6 +13,11 @@ enum AuthProvider {
   APPLE
 }
 
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
 enum FriendshipStatus {
   PENDING
   ACCEPTED
@@ -48,18 +53,25 @@ enum MessageReactionType {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  username  String   @unique
-  email     String   @unique
-  password  String?
-  avatar    String?
-  phone     String?
-  birthDate DateTime?
-  city      String?
+  id           String     @id @default(cuid())
+  name         String
+  nickname     String?
+  username     String     @unique
+  email        String     @unique
+  passwordHash String?
+  cpf          String?    @unique
+  phone        String?    @unique
+  birthDate    DateTime?
+  avatar       String?
+  city         String?
 
-  authProvider     AuthProvider @default(LOCAL)
-  authProviderId   String?
+  status          UserStatus @default(ACTIVE)
+  authProvider    AuthProvider @default(LOCAL)
+  authProviderId  String?
+
+  failedLoginAttempts Int       @default(0)
+  blockedUntil        DateTime?
+  lastLoginAt         DateTime?
 
   locationSharingLevel LocationSharingLevel @default(PRIVATE)
 
@@ -76,6 +88,7 @@ model User {
   location              Location?
   notifications         Notification[]
   refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
   blockedUsers          Block[]      @relation("Blocker")
   blockedByUsers        Block[]      @relation("Blocked")
   reports               Report[]     @relation("Reporter")
@@ -86,6 +99,9 @@ model User {
   pinnedMessages        PinnedMessage[]
   favorites             Favorite[]
   conversations         ConversationParticipant[]
+
+  @@index([cpf])
+  @@index([phone])
 }
 
 model RefreshToken {
@@ -96,6 +112,20 @@ model RefreshToken {
   ipAddress String?
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

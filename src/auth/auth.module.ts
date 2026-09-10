@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+import { MailService } from '../common/mail/mail.service';
+import { RateLimitService } from '../common/rate-limit/rate-limit.guard';
+
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -10,14 +14,20 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     ConfigModule.forRoot(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
+    JwtModule.registerAsync({
       global: true,
-      secret: process.env.JWT_SECRET || 'maisbloco-secret-key',
-      signOptions: { expiresIn: '15m' },
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): JwtModuleOptions => ({
+        secret: config.get<string>('JWT_SECRET') || 'maisbloco-secret-key',
+        signOptions: {
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ||
+            '15m') as NonNullable<JwtModuleOptions['signOptions']>['expiresIn'],
+        },
+      }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, MailService, RateLimitService],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
