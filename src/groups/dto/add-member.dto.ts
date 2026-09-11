@@ -1,7 +1,9 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty } from 'class-validator';
 
 export class AddMemberDto {
-  @IsString()
+  @Type(() => Number)
+  @IsInt()
   @IsNotEmpty({ message: 'O id do usuário é obrigatório.' })
-  userId: string;
+  userId: number;
 }

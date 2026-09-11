@@ -61,7 +61,7 @@ enum MessageReactionType {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           Int       @id @default(autoincrement())
   name         String
   nickname     String?
   username     String    @unique
@@ -70,8 +70,11 @@ model User {
   cpf          String?   @unique
   phone        String?   @unique
   birthDate    DateTime?
-  avatar       String?
-  city         String?
+
+  // 1 = ADMIN, 2 = CLIENTE
+  role    Int      @default(2)
+  avatar  String?
+  city    String?
 
   status         UserStatus   @default(ACTIVE)
   authProvider   AuthProvider @default(LOCAL)
@@ -113,12 +116,13 @@ model User {
 
   @@index([cpf])
   @@index([phone])
+  @@index([role])
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   token     String   @unique
-  userId    String
+  userId    Int
   userAgent String?
   ipAddress String?
   expiresAt DateTime
@@ -131,9 +135,9 @@ model RefreshToken {
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
+  id        Int       @id @default(autoincrement())
   token     String    @unique
-  userId    String
+  userId    Int
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
@@ -145,9 +149,9 @@ model PasswordResetToken {
 }
 
 model Friendship {
-  id          String           @id @default(cuid())
-  requesterId String
-  receiverId  String
+  id          Int              @id @default(autoincrement())
+  requesterId Int
+  receiverId  Int
   status      FriendshipStatus @default(PENDING)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -161,9 +165,9 @@ model Friendship {
 }
 
 model Block {
-  id        String   @id @default(cuid())
-  blockerId String
-  blockedId String
+  id        Int      @id @default(autoincrement())
+  blockerId Int
+  blockedId Int
   createdAt DateTime @default(now())
 
   blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
@@ -173,11 +177,11 @@ model Block {
 }
 
 model Group {
-  id          String   @id @default(cuid())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   avatar      String?
-  ownerId     String
+  ownerId     Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -190,9 +194,9 @@ model Group {
 }
 
 model GroupMember {
-  id       String          @id @default(cuid())
-  groupId  String
-  userId   String
+  id       Int             @id @default(autoincrement())
+  groupId  Int
+  userId   Int
   role     GroupMemberRole @default(MEMBER)
   joinedAt DateTime        @default(now())
 
@@ -205,10 +209,10 @@ model GroupMember {
 }
 
 model GroupInvite {
-  id        String            @id @default(cuid())
-  groupId   String
-  inviterId String
-  inviteeId String
+  id        Int               @id @default(autoincrement())
+  groupId   Int
+  inviterId Int
+  inviteeId Int
   status    GroupInviteStatus @default(PENDING)
   expiresAt DateTime?
   createdAt DateTime          @default(now())
@@ -225,8 +229,8 @@ model GroupInvite {
 }
 
 model GroupChat {
-  id        String   @id @default(cuid())
-  groupId   String   @unique
+  id        Int      @id @default(autoincrement())
+  groupId   Int      @unique
   createdAt DateTime @default(now())
 
   group          Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -237,7 +241,7 @@ model GroupChat {
 }
 
 model Conversation {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
   participants ConversationParticipant[]
@@ -247,9 +251,9 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id             String   @id @default(cuid())
-  conversationId String
-  userId         String
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  userId         Int
   joinedAt       DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -261,14 +265,14 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String   @id @default(cuid())
+  id             Int      @id @default(autoincrement())
   content        String?
   imageUrl       String?
   locationShare  Json?
-  conversationId String?
-  groupChatId    String?
-  senderId       String
-  replyToId      String?
+  conversationId Int?
+  groupChatId    Int?
+  senderId       Int
+  replyToId      Int?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -286,9 +290,9 @@ model Message {
 }
 
 model MessageReaction {
-  id        String              @id @default(cuid())
-  messageId String
-  userId    String
+  id        Int                 @id @default(autoincrement())
+  messageId Int
+  userId    Int
   type      MessageReactionType
   createdAt DateTime            @default(now())
 
@@ -300,10 +304,10 @@ model MessageReaction {
 }
 
 model PinnedMessage {
-  id          String   @id @default(cuid())
-  messageId   String
-  userId      String
-  groupChatId String
+  id          Int      @id @default(autoincrement())
+  messageId   Int
+  userId      Int
+  groupChatId Int
   createdAt   DateTime @default(now())
 
   message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -314,7 +318,7 @@ model PinnedMessage {
 }
 
 model Event {
-  id              String      @id @default(cuid())
+  id              Int         @id @default(autoincrement())
   name            String
   description     String?
   coverImage      String?
@@ -341,9 +345,9 @@ model Event {
 }
 
 model EventParticipant {
-  id        String   @id @default(cuid())
-  eventId   String
-  userId    String
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
   createdAt DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -355,9 +359,9 @@ model EventParticipant {
 }
 
 model Favorite {
-  id      String @id @default(cuid())
-  userId  String
-  eventId String
+  id      Int @id @default(autoincrement())
+  userId  Int
+  eventId Int
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -366,8 +370,8 @@ model Favorite {
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  userId    String   @unique
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
   latitude  Float
   longitude Float
   accuracy  Float?
@@ -379,14 +383,14 @@ model Location {
 }
 
 model MeetingPoint {
-  id          String    @id @default(cuid())
-  eventId     String?
+  id          Int       @id @default(autoincrement())
+  eventId     Int?
   title       String
   description String?
   latitude    Float
   longitude   Float
   validUntil  DateTime?
-  createdById String
+  createdById Int
   createdAt   DateTime  @default(now())
 
   event   Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
@@ -398,9 +402,9 @@ model MeetingPoint {
 }
 
 model MeetingPointShare {
-  id             String   @id @default(cuid())
-  meetingPointId String
-  sharedWithId   String
+  id             Int      @id @default(autoincrement())
+  meetingPointId Int
+  sharedWithId   Int
   createdAt      DateTime @default(now())
 
   meetingPoint MeetingPoint @relation(fields: [meetingPointId], references: [id], onDelete: Cascade)
@@ -410,9 +414,9 @@ model MeetingPointShare {
 }
 
 model Report {
-  id          String   @id @default(cuid())
-  reporterId  String
-  reportedId  String?
+  id          Int      @id @default(autoincrement())
+  reporterId  Int
+  reportedId  Int?
   messageId   String?
   reason      String
   description String?
@@ -427,8 +431,8 @@ model Report {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   title     String
   body      String
   data      Json?
@@ -441,7 +445,7 @@ model Notification {
 }
 
 model NotificationPreferences {
-  userId String @id
+  userId Int @id
   friendRequests Boolean @default(true)
   groupInvites Boolean @default(true)
   messages Boolean @default(true)

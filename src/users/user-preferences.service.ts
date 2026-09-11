@@ -22,20 +22,20 @@ const select = {
 @Injectable()
 export class UserPreferencesService {
   constructor(private readonly prisma: PrismaService) {}
-  privacy(userId: string) {
+  privacy(userId: number) {
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: { locationSharingLevel: true },
     });
   }
-  updatePrivacy(userId: string, dto: PrivacyDto) {
+  updatePrivacy(userId: number, dto: PrivacyDto) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { locationSharingLevel: dto.locationSharingLevel },
       select: { locationSharingLevel: true },
     });
   }
-  async notifications(userId: string) {
+  async notifications(userId: number) {
     return (
       (await this.prisma.notificationPreferences.findUnique({
         where: { userId },
@@ -43,7 +43,7 @@ export class UserPreferencesService {
       })) ?? defaults
     );
   }
-  updateNotifications(userId: string, dto: NotificationPreferencesDto) {
+  updateNotifications(userId: number, dto: NotificationPreferencesDto) {
     return this.prisma.notificationPreferences.upsert({
       where: { userId },
       create: { userId, ...dto },

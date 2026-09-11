@@ -7,7 +7,7 @@ import { MyEventsQueryDto } from './dto/profile.dto';
 export class UserEventsService {
   constructor(private readonly prisma: PrismaService) {}
   async list(
-    userId: string,
+    userId: number,
     { filter = 'favorites', page = 1, limit = 20 }: MyEventsQueryDto,
   ) {
     const now = new Date();
@@ -61,11 +61,11 @@ export class UserEventsService {
       },
     };
   }
-  async removeFavorite(userId: string, eventId: string) {
+  async removeFavorite(userId: number, eventId: number) {
     await this.prisma.favorite.deleteMany({ where: { userId, eventId } });
     return { success: true };
   }
-  async cancelParticipation(userId: string, eventId: string) {
+  async cancelParticipation(userId: number, eventId: number) {
     await this.prisma.eventParticipant.deleteMany({
       where: { userId, eventId },
     });

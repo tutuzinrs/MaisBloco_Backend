@@ -1,7 +1,7 @@
 export type EventSource = 'goBloco' | 'CODANTE';
 
 export class EventResponseDto {
-  id: string;
+  id: number | string;
   name: string;
   description: string | null;
   coverImage: string | null;

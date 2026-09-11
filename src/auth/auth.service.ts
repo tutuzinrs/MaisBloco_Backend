@@ -256,7 +256,7 @@ export class AuthService {
     return { success: true, message: 'Você saiu da sua conta.' };
   }
 
-  async getProfile(userId: string): Promise<SafeUser> {
+  async getProfile(userId: number): Promise<SafeUser> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException();
@@ -264,7 +264,7 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<SafeUser> {
+  async updateProfile(userId: number, dto: UpdateProfileDto): Promise<SafeUser> {
     const data: Prisma.UserUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.username !== undefined) data.username = dto.username;
@@ -283,7 +283,7 @@ export class AuthService {
     }
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(userId: number, dto: ChangePasswordDto) {
     if (dto.password !== dto.passwordConfirmation) throw new BadRequestException('As senhas não coincidem.');
     if (!isStrongPassword(dto.password) || Buffer.byteLength(dto.password, 'utf8') > 72) {
       throw new BadRequestException('Use de 8 a 72 bytes, com maiúscula, minúscula, número e símbolo.');
@@ -661,7 +661,7 @@ export class AuthService {
   }
 
   private async saveRefreshToken(
-    userId: string,
+    userId: number,
     token: string,
     context: RequestContext,
   ) {
@@ -709,6 +709,7 @@ export class AuthService {
       nickname: user.nickname,
       username: user.username,
       email: user.email,
+      role: user.role,
       avatar: user.avatar,
       city: user.city,
       locationSharingLevel: user.locationSharingLevel,

@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -66,7 +67,7 @@ export class GroupsController {
   @Patch('invites/:inviteId/accept')
   acceptInvite(
     @Req() req: AuthRequest,
-    @Param('inviteId') inviteId: string,
+    @Param('inviteId', ParseIntPipe) inviteId: number,
   ) {
     return this.groupInvitesService.accept(req.user.sub, inviteId);
   }
@@ -74,25 +75,25 @@ export class GroupsController {
   @Patch('invites/:inviteId/reject')
   rejectInvite(
     @Req() req: AuthRequest,
-    @Param('inviteId') inviteId: string,
+    @Param('inviteId', ParseIntPipe) inviteId: number,
   ) {
     return this.groupInvitesService.reject(req.user.sub, inviteId);
   }
 
   @Get(':groupId')
-  findOne(@Req() req: AuthRequest, @Param('groupId') groupId: string) {
+  findOne(@Req() req: AuthRequest, @Param('groupId', ParseIntPipe) groupId: number) {
     return this.groupsService.findOne(req.user.sub, groupId);
   }
 
   @Get(':groupId/members')
-  findMembers(@Req() req: AuthRequest, @Param('groupId') groupId: string) {
+  findMembers(@Req() req: AuthRequest, @Param('groupId', ParseIntPipe) groupId: number) {
     return this.groupsService.findMembers(req.user.sub, groupId);
   }
 
   @Get(':groupId/invites')
   findPendingInvites(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
   ) {
     return this.groupInvitesService.listPending(req.user.sub, groupId);
   }
@@ -100,7 +101,7 @@ export class GroupsController {
   @Post(':groupId/invites')
   createInvites(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
     @Body() dto: CreateGroupInvitesDto,
   ) {
     return this.groupInvitesService.create(req.user.sub, groupId, dto);
@@ -110,22 +111,22 @@ export class GroupsController {
   @HttpCode(HttpStatus.OK)
   cancelInvite(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
-    @Param('inviteId') inviteId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
+    @Param('inviteId', ParseIntPipe) inviteId: number,
   ) {
     return this.groupInvitesService.cancel(req.user.sub, groupId, inviteId);
   }
 
   @Post(':groupId/join')
   @HttpCode(HttpStatus.OK)
-  join(@Req() req: AuthRequest, @Param('groupId') groupId: string) {
+  join(@Req() req: AuthRequest, @Param('groupId', ParseIntPipe) groupId: number) {
     return this.groupsService.join(req.user.sub, groupId);
   }
 
   @Post(':groupId/members')
   addMember(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
     @Body() dto: AddMemberDto,
   ) {
     return this.groupsService.addMember(req.user.sub, groupId, dto.userId);
@@ -133,7 +134,7 @@ export class GroupsController {
 
   @Delete(':groupId/leave')
   @HttpCode(HttpStatus.OK)
-  leave(@Req() req: AuthRequest, @Param('groupId') groupId: string) {
+  leave(@Req() req: AuthRequest, @Param('groupId', ParseIntPipe) groupId: number) {
     return this.groupsService.leave(req.user.sub, groupId);
   }
 
@@ -141,8 +142,8 @@ export class GroupsController {
   @HttpCode(HttpStatus.OK)
   removeMember(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
-    @Param('userId') memberId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
+    @Param('userId', ParseIntPipe) memberId: number,
   ) {
     return this.groupsService.removeMember(req.user.sub, groupId, memberId);
   }
@@ -150,7 +151,7 @@ export class GroupsController {
   @Patch(':groupId')
   update(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
     @Body() dto: UpdateGroupDto,
   ) {
     return this.groupsService.update(req.user.sub, groupId, dto);
@@ -159,8 +160,8 @@ export class GroupsController {
   @Patch(':groupId/members/:userId/role')
   changeRole(
     @Req() req: AuthRequest,
-    @Param('groupId') groupId: string,
-    @Param('userId') memberId: string,
+    @Param('groupId', ParseIntPipe) groupId: number,
+    @Param('userId', ParseIntPipe) memberId: number,
     @Body() dto: ChangeRoleDto,
   ) {
     return this.groupsService.changeRole(

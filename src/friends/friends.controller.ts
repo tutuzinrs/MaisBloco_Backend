@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -35,7 +36,7 @@ export class FriendsController {
   }
   @Patch('requests/:id') respond(
     @Req() req: AuthRequest,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: FriendActionDto,
   ) {
     return this.service.respond(req.user.sub, id, dto.action);
@@ -51,11 +52,11 @@ export class FriendsController {
   }
   @Delete('blocks/:userId') unblock(
     @Req() req: AuthRequest,
-    @Param('userId') id: string,
+    @Param('userId', ParseIntPipe) id: number,
   ) {
     return this.service.unblock(req.user.sub, id);
   }
-  @Delete(':id') remove(@Req() req: AuthRequest, @Param('id') id: string) {
+  @Delete(':id') remove(@Req() req: AuthRequest, @Param('id', ParseIntPipe) id: number) {
     return this.service.remove(req.user.sub, id);
   }
 }

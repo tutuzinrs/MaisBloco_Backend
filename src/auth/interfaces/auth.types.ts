@@ -4,18 +4,21 @@ export interface RequestContext {
 }
 
 export interface AuthenticatedUser {
-  sub: string;
+  sub: number;
   email: string;
   username: string;
   userStatus: 'ACTIVE' | 'BLOCKED';
+  role: number;
 }
 
 export interface SafeUser {
-  id: string;
+  id: number;
   name: string;
   nickname: string | null;
   username: string;
   email: string;
+  // 1 = ADMIN, 2 = CLIENTE
+  role: number;
   avatar: string | null;
   city: string | null;
   locationSharingLevel: 'PRIVATE' | 'FRIENDS' | 'GROUP' | 'PUBLIC';

@@ -1,7 +1,7 @@
 import { UserEventsService } from './user-events.service';
 import { UserPreferencesService } from './user-preferences.service';
 import { MyEventsQueryDto, NotificationPreferencesDto, PrivacyDto } from './dto/profile.dto';
-import { Controller, Body, Delete, Param, Patch, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Body, Delete, Param, ParseIntPipe, Patch, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -43,7 +43,7 @@ export class UsersController {
   @Get('me/events')
   myEvents(@Req() req: AuthRequest, @Query() query: MyEventsQueryDto) { return this.events.list(req.user.sub, query); }
   @Delete('me/favorites/:eventId')
-  removeFavorite(@Req() req: AuthRequest, @Param('eventId') id: string) { return this.events.removeFavorite(req.user.sub, id); }
+  removeFavorite(@Req() req: AuthRequest, @Param('eventId', ParseIntPipe) id: number) { return this.events.removeFavorite(req.user.sub, id); }
   @Delete('me/participations/:eventId')
-  cancelParticipation(@Req() req: AuthRequest, @Param('eventId') id: string) { return this.events.cancelParticipation(req.user.sub, id); }
+  cancelParticipation(@Req() req: AuthRequest, @Param('eventId', ParseIntPipe) id: number) { return this.events.cancelParticipation(req.user.sub, id); }
 }

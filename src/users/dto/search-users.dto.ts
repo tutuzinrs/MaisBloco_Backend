@@ -35,6 +35,7 @@ export class SearchUsersDto {
   limit?: number = 20;
 
   @IsOptional()
-  @IsString()
-  excludeGroupId?: string;
+  @Type(() => Number)
+  @IsInt()
+  excludeGroupId?: number;
 }
