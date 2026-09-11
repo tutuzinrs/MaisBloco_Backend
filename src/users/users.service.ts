@@ -71,4 +71,23 @@ export class UsersService {
       },
     };
   }
+
+  async countFriends(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.friendship.count({
+      where: {
+        status: 'ACCEPTED',
+        OR: [{ requesterId: userId }, { receiverId: userId }],
+      },
+    });
+
+    return { count };
+  }
+
+  async countFavorites(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.favorite.count({
+      where: { userId },
+    });
+
+    return { count };
+  }
 }

@@ -18,4 +18,14 @@ export class UsersController {
   search(@Req() req: AuthRequest, @Query() query: SearchUsersDto) {
     return this.usersService.search(req.user.sub, query);
   }
+
+  @Get('me/friends-count')
+  countFriends(@Req() req: AuthRequest) {
+    return this.usersService.countFriends(req.user.sub);
+  }
+
+  @Get('me/favorites-count')
+  countFavorites(@Req() req: AuthRequest) {
+    return this.usersService.countFavorites(req.user.sub);
+  }
 }
