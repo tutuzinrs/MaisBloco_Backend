@@ -49,7 +49,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   async register(
     dto: RegisterDto,
@@ -435,7 +435,7 @@ export class AuthService {
     if (user.status !== UserStatus.ACTIVE) {
       throw new ApiError(
         ErrorCode.AUTH_ACCOUNT_BLOCKED,
-        'Sua conta está bloqueada. Entre em contato com o suporte do MaisBloco.',
+        'Sua conta está bloqueada. Entre em contato com o suporte do goBloco.',
         HttpStatus.FORBIDDEN,
       );
     }
@@ -446,9 +446,9 @@ export class AuthService {
     const data =
       nextAttempts >= MAX_FAILED_ATTEMPTS
         ? {
-            failedLoginAttempts: 0,
-            blockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
-          }
+          failedLoginAttempts: 0,
+          blockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
+        }
         : { failedLoginAttempts: nextAttempts };
 
     await this.prisma.user.update({ where: { id: user.id }, data });

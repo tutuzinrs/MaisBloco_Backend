@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey:
-        configService.get<string>('JWT_SECRET') || 'maisbloco-secret-key',
+        configService.get<string>('JWT_SECRET') || 'goBloco-secret-key',
     });
   }
 
@@ -43,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (user.status !== 'ACTIVE') {
       throw new ApiError(
         ErrorCode.AUTH_ACCOUNT_BLOCKED,
-        'Sua conta está bloqueada. Entre em contato com o suporte do MaisBloco.',
+        'Sua conta está bloqueada. Entre em contato com o suporte do goBloco.',
         403,
       );
     }

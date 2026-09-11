@@ -1,5 +1,5 @@
 {
-  "name": "maisbloco_backend",
+  "name": "goBloco_backend",
   "version": "0.0.1",
   "description": "<p align=\"center\">\r   <a href=\"http://nestjs.com/\" target=\"blank\"><img src=\"https://nestjs.com/img/logo-small.svg\" width=\"120\" alt=\"Nest Logo\" /></a>\r </p>",
   "author": "",
@@ -69,11 +69,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tutuzinrs/MaisBloco_Backend.git"
+    "url": "git+https://github.com/tutuzinrs/goBloco_Backend.git"
   },
   "keywords": [],
   "bugs": {
-    "url": "https://github.com/tutuzinrs/MaisBloco_Backend/issues"
+    "url": "https://github.com/tutuzinrs/goBloco_Backend/issues"
   },
-  "homepage": "https://github.com/tutuzinrs/MaisBloco_Backend#readme"
+  "homepage": "https://github.com/tutuzinrs/goBloco_Backend#readme"
 }
