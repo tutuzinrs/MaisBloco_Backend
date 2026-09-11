@@ -1,10 +1,14 @@
+import { UpdateProfileDto } from '../users/dto/profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   HttpStatus,
+  BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthProvider, User, UserStatus } from '@prisma/client';
+import { AuthProvider, Prisma, User, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { decode } from 'jsonwebtoken';
 import { randomBytes } from 'node:crypto';
@@ -258,6 +262,46 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     return this.sanitizeUser(user);
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<SafeUser> {
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.username !== undefined) data.username = dto.username;
+    if (dto.city !== undefined) data.city = dto.city || null;
+    if (dto.phone !== undefined) {
+      if (dto.phone && !isValidBrazilianPhone(dto.phone)) throw new BadRequestException('Telefone inválido. Informe DDD e número.');
+      data.phone = dto.phone ? normalizePhone(dto.phone) : null;
+    }
+    try {
+      return this.sanitizeUser(await this.prisma.user.update({ where: { id: userId }, data }));
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Nome de usuário ou telefone já está em uso.');
+      }
+      throw error;
+    }
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    if (dto.password !== dto.passwordConfirmation) throw new BadRequestException('As senhas não coincidem.');
+    if (!isStrongPassword(dto.password) || Buffer.byteLength(dto.password, 'utf8') > 72) {
+      throw new BadRequestException('Use de 8 a 72 bytes, com maiúscula, minúscula, número e símbolo.');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash || user.authProvider !== AuthProvider.LOCAL) {
+      throw new BadRequestException('Esta conta utiliza login social. Altere a senha no seu provedor.');
+    }
+    if (!(await bcrypt.compare(dto.currentPassword, user.passwordHash))) throw new BadRequestException('Senha atual incorreta.');
+    if (await bcrypt.compare(dto.password, user.passwordHash)) throw new BadRequestException('Escolha uma senha diferente da atual.');
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.updateMany({ where: { id: userId, passwordHash: user.passwordHash }, data: { passwordHash, failedLoginAttempts: 0, blockedUntil: null } });
+      if (updated.count !== 1) throw new ConflictException('A senha foi alterada em outra sessão. Tente novamente.');
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      await tx.passwordResetToken.deleteMany({ where: { userId } });
+    });
+    return { success: true, message: 'Senha alterada com sucesso!' };
   }
 
   async checkUsername(raw: string) {
@@ -666,6 +710,8 @@ export class AuthService {
       username: user.username,
       email: user.email,
       avatar: user.avatar,
+      city: user.city,
+      locationSharingLevel: user.locationSharingLevel,
       phone: user.phone ? maskPhone(user.phone) : null,
       birthDate: user.birthDate?.toISOString() ?? null,
       status: user.status,

@@ -1,3 +1,4 @@
+import { FriendsModule } from './friends/friends.module';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,6 +17,7 @@ import { ConfigModule } from '@nestjs/config';
     EventsModule,
     GroupsModule,
     UsersModule,
+    FriendsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
