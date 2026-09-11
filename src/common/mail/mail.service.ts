@@ -16,7 +16,7 @@ export class MailService {
   }
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const appScheme = process.env.APP_SCHEME ?? 'maisbloco';
+    const appScheme = process.env.APP_SCHEME ?? 'goBloco';
     const resetUrl = `${appScheme}://reset-password?token=${token}`;
 
     if (!this.resend) {

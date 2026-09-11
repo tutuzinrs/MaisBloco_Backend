@@ -18,7 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       global: true,
       inject: [ConfigService],
       useFactory: (config: ConfigService): JwtModuleOptions => ({
-        secret: config.get<string>('JWT_SECRET') || 'maisbloco-secret-key',
+        secret: config.get<string>('JWT_SECRET') || 'goBloco-secret-key',
         signOptions: {
           expiresIn: (config.get<string>('JWT_EXPIRES_IN') ||
             '15m') as NonNullable<JwtModuleOptions['signOptions']>['expiresIn'],
@@ -30,4 +30,4 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   providers: [AuthService, JwtStrategy, MailService, RateLimitService],
   exports: [AuthService, JwtModule, PassportModule, JwtStrategy],
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 
-export const EVENT_SOURCES = ['MAISBLOCO', 'CODANTE', 'ALL'] as const;
+export const EVENT_SOURCES = ['goBloco', 'CODANTE', 'ALL'] as const;
 export type EventSourceFilter = (typeof EVENT_SOURCES)[number];
 
 export class EventsQueryDto {
@@ -52,7 +52,7 @@ export class EventsQueryDto {
 
   @IsOptional()
   @IsIn(EVENT_SOURCES, {
-    message: 'A origem deve ser MAISBLOCO, CODANTE ou ALL.',
+    message: 'A origem deve ser goBloco, CODANTE ou ALL.',
   })
   source?: EventSourceFilter;
 

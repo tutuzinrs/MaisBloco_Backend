@@ -1,4 +1,4 @@
-export type EventSource = 'MAISBLOCO' | 'CODANTE';
+export type EventSource = 'goBloco' | 'CODANTE';
 
 export class EventResponseDto {
   id: string;

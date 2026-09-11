@@ -15,7 +15,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly codante: CodanteProvider,
-  ) {}
+  ) { }
 
   async findAll(query: EventsQueryDto) {
     const {
@@ -34,13 +34,13 @@ export class EventsService {
       source === 'CODANTE'
         ? Promise.resolve<EventResponseDto[]>([])
         : this.findLocalEvents({ lat, lng, radius, category, search }),
-      source === 'MAISBLOCO'
+      source === 'goBloco'
         ? Promise.resolve<EventResponseDto[]>([])
         : this.findExternalEvents({ city, category, search }),
     ]);
 
     let events: EventResponseDto[];
-    if (source === 'MAISBLOCO') {
+    if (source === 'goBloco') {
       events = localEvents;
     } else if (source === 'CODANTE') {
       events = codanteEvents;
@@ -176,7 +176,7 @@ function mapLocalEvent(event: EventModel): EventResponseDto {
     price: formatEventPrice(event),
     isPaid: event.isPaid,
     externalLink: event.externalLink,
-    source: 'MAISBLOCO',
+    source: 'goBloco',
   };
 }
 
@@ -230,8 +230,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos(toRadians(lat2)) *
+    Math.sin(dLng / 2) ** 2;
   return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
