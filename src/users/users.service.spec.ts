@@ -82,3 +82,47 @@ describe('UsersService', () => {
     });
   });
 });
+
+describe('UsersService counts', () => {
+  let service: UsersService;
+  let friendship: { count: jest.Mock };
+  let favorite: { count: jest.Mock };
+
+  beforeEach(() => {
+    const user = { findMany: jest.fn(), count: jest.fn() };
+    friendship = { count: jest.fn() };
+    favorite = { count: jest.fn() };
+    service = new UsersService({
+      user,
+      friendship,
+      favorite,
+    } as unknown as PrismaService);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('countFriends counts only ACCEPTED friendships on either side', async () => {
+    friendship.count.mockResolvedValue(3);
+
+    const result = await service.countFriends('user_1');
+
+    expect(friendship.count).toHaveBeenCalledWith({
+      where: {
+        status: 'ACCEPTED',
+        OR: [{ requesterId: 'user_1' }, { receiverId: 'user_1' }],
+      },
+    });
+    expect(result).toEqual({ count: 3 });
+  });
+
+  it('countFavorites counts the favorites of the user', async () => {
+    favorite.count.mockResolvedValue(5);
+
+    const result = await service.countFavorites('user_1');
+
+    expect(favorite.count).toHaveBeenCalledWith({
+      where: { userId: 'user_1' },
+    });
+    expect(result).toEqual({ count: 5 });
+  });
+});

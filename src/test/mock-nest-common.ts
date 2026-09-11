@@ -59,3 +59,12 @@ export class Logger {
     void this.context;
   }
 }
+export class BadRequestException extends HttpException {
+  constructor(message = 'Bad Request') { super(message, 400); }
+}
+export class ConflictException extends HttpException {
+  constructor(message = 'Conflict') { super(message, 409); }
+}
+export class NotFoundException extends HttpException {
+  constructor(message = 'Not Found') { super(message, 404); }
+}

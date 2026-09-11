@@ -82,6 +82,7 @@ model User {
   lastLoginAt         DateTime?
 
   locationSharingLevel LocationSharingLevel @default(PRIVATE)
+  notificationPreferences NotificationPreferences?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -437,4 +438,15 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+model NotificationPreferences {
+  userId String @id
+  friendRequests Boolean @default(true)
+  groupInvites Boolean @default(true)
+  messages Boolean @default(true)
+  groupActivity Boolean @default(true)
+  favoriteEvents Boolean @default(true)
+  eventReminders Boolean @default(true)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

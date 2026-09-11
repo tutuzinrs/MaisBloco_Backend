@@ -1,3 +1,5 @@
+import { UpdateProfileDto } from '../users/dto/profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   Body,
   Controller,
@@ -5,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Patch,
   Query,
   Req,
   UseGuards,
@@ -93,6 +96,20 @@ export class AuthController {
   @Get('me')
   me(@Req() req: AuthRequest) {
     return this.authService.getProfile(req.user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  updateProfile(@Req() req: AuthRequest, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.sub, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ limit: 5, ttlMs: 60_000 })
+  changePassword(@Req() req: AuthRequest, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(req.user.sub, dto);
   }
 
   // Kept as an alias for backward compatibility with the previous app build.

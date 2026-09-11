@@ -17,6 +17,8 @@ export interface SafeUser {
   username: string;
   email: string;
   avatar: string | null;
+  city: string | null;
+  locationSharingLevel: 'PRIVATE' | 'FRIENDS' | 'GROUP' | 'PUBLIC';
   phone: string | null;
   birthDate: string | null;
   status: string;
