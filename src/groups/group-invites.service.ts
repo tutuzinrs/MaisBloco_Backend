@@ -12,15 +12,15 @@ import { GroupInvitesQueryDto } from './dto/group-invites-query.dto';
 type Tx = Prisma.TransactionClient;
 
 export interface InvitedUserSummary {
-  userId: string;
+  userId: number;
   name: string;
   username: string;
   avatar: string | null;
 }
 
 export interface GroupInviteItem {
-  id: string;
-  groupId: string;
+  id: number;
+  groupId: number;
   status: GroupInviteStatus;
   createdAt: string;
   expiresAt: string | null;
@@ -29,12 +29,12 @@ export interface GroupInviteItem {
 }
 
 export interface ReceivedInviteItem {
-  id: string;
+  id: number;
   status: GroupInviteStatus;
   createdAt: string;
   expiresAt: string | null;
   group: {
-    groupId: string;
+    groupId: number;
     name: string;
     avatar: string | null;
     memberCount: number;
@@ -43,12 +43,12 @@ export interface ReceivedInviteItem {
 }
 
 export interface SentInviteItem {
-  id: string;
+  id: number;
   status: GroupInviteStatus;
   createdAt: string;
   expiresAt: string | null;
   group: {
-    groupId: string;
+    groupId: number;
     name: string;
     avatar: string | null;
   };
@@ -57,19 +57,19 @@ export interface SentInviteItem {
 
 export interface CreateInvitesResult {
   data: GroupInviteItem[];
-  failed: Array<{ userId: string; code: ErrorCode; message: string }>;
+  failed: Array<{ userId: number; code: ErrorCode; message: string }>;
 }
 
 interface UserSummaryRecord {
-  id: string;
+  id: number;
   name: string;
   username: string;
   avatar: string | null;
 }
 
 interface InviteRecordWithUsers {
-  id: string;
-  groupId: string;
+  id: number;
+  groupId: number;
   status: GroupInviteStatus;
   createdAt: Date;
   expiresAt: Date | null;
@@ -91,8 +91,8 @@ export class GroupInvitesService {
   ) {}
 
   async create(
-    actorId: string,
-    groupId: string,
+    actorId: number,
+    groupId: number,
     dto: CreateGroupInvitesDto,
   ): Promise<CreateInvitesResult> {
     const membership = await this.groupsService.requireMembership(
@@ -139,7 +139,7 @@ export class GroupInvitesService {
   }
 
   async findReceived(
-    userId: string,
+    userId: number,
     query: GroupInvitesQueryDto,
   ): Promise<{ data: ReceivedInviteItem[]; meta: Record<string, unknown> }> {
     const { search, page = 1, limit = 20 } = query;
@@ -200,7 +200,7 @@ export class GroupInvitesService {
   }
 
   async findSent(
-    userId: string,
+    userId: number,
     query: GroupInvitesQueryDto,
   ): Promise<{ data: SentInviteItem[]; meta: Record<string, unknown> }> {
     const { search, page = 1, limit = 20 } = query;
@@ -255,8 +255,8 @@ export class GroupInvitesService {
   }
 
   async listPending(
-    actorId: string,
-    groupId: string,
+    actorId: number,
+    groupId: number,
   ): Promise<{ data: GroupInviteItem[] }> {
     const membership = await this.groupsService.requireMembership(
       actorId,
@@ -293,9 +293,9 @@ export class GroupInvitesService {
   }
 
   async accept(
-    inviteeId: string,
-    inviteId: string,
-  ): Promise<{ success: true; groupId: string }> {
+    inviteeId: number,
+    inviteId: number,
+  ): Promise<{ success: true; groupId: number }> {
     return this.prisma.$transaction(async (tx) => {
       const invite = await tx.groupInvite.findUnique({
         where: { id: inviteId },
@@ -382,8 +382,8 @@ export class GroupInvitesService {
   }
 
   async reject(
-    inviteeId: string,
-    inviteId: string,
+    inviteeId: number,
+    inviteId: number,
   ): Promise<{ success: boolean }> {
     const invite = await this.prisma.groupInvite.findUnique({
       where: { id: inviteId },
@@ -422,9 +422,9 @@ export class GroupInvitesService {
   }
 
   async cancel(
-    actorId: string,
-    groupId: string,
-    inviteId: string,
+    actorId: number,
+    groupId: number,
+    inviteId: number,
   ): Promise<{ success: boolean }> {
     const membership = await this.groupsService.requireMembership(
       actorId,
@@ -473,7 +473,7 @@ export class GroupInvitesService {
 
   private async createOne(
     tx: Tx,
-    params: { actorId: string; groupId: string; inviteeId: string },
+    params: { actorId: number; groupId: number; inviteeId: number },
   ): Promise<
     | { item: GroupInviteItem; error?: undefined }
     | { item?: undefined; error: { code: ErrorCode; message: string } }
@@ -625,7 +625,7 @@ export class GroupInvitesService {
     };
   }
 
-  private async isBlocked(tx: Tx, actorId: string, targetId: string) {
+  private async isBlocked(tx: Tx, actorId: number, targetId: number) {
     const block = await tx.block.findFirst({
       where: {
         OR: [

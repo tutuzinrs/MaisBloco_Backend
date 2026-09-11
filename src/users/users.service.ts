@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchUsersDto } from './dto/search-users.dto';
 
 export interface SearchUserItem {
-  id: string;
+  id: number;
   name: string;
   username: string;
   avatar: string | null;
@@ -16,7 +16,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
-    requesterId: string,
+    requesterId: number,
     dto: SearchUsersDto,
   ): Promise<{ data: SearchUserItem[]; meta: Record<string, unknown> }> {
     const { q, page = 1, limit = 20, excludeGroupId } = dto;
@@ -72,7 +72,7 @@ export class UsersService {
     };
   }
 
-  async countFriends(userId: string): Promise<{ count: number }> {
+  async countFriends(userId: number): Promise<{ count: number }> {
     const count = await this.prisma.friendship.count({
       where: {
         status: 'ACCEPTED',
@@ -83,7 +83,7 @@ export class UsersService {
     return { count };
   }
 
-  async countFavorites(userId: string): Promise<{ count: number }> {
+  async countFavorites(userId: number): Promise<{ count: number }> {
     const count = await this.prisma.favorite.count({
       where: { userId },
     });

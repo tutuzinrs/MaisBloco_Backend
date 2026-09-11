@@ -13,7 +13,7 @@ const publicUser = {
   username: true,
   avatar: true,
 } as const;
-const pair = (a: string, b: string) => ({
+const pair = (a: number, b: number) => ({
   OR: [
     { requesterId: a, receiverId: b },
     { requesterId: b, receiverId: a },
@@ -45,7 +45,7 @@ export class FriendsService {
   }
 
   async list(
-    userId: string,
+    userId: number,
     { tab = 'friends', page = 1, limit = 20 }: FriendsQueryDto,
   ) {
     const where: Prisma.FriendshipWhereInput = {
@@ -89,7 +89,7 @@ export class FriendsService {
     };
   }
 
-  request(userId: string, targetId: string) {
+  request(userId: number, targetId: number) {
     if (userId === targetId)
       throw new BadRequestException('Você não pode adicionar a si mesmo.');
     return this.transaction(async (tx) => {
@@ -123,7 +123,7 @@ export class FriendsService {
     });
   }
 
-  respond(userId: string, id: string, action: 'accept' | 'reject') {
+  respond(userId: number, id: number, action: 'accept' | 'reject') {
     return this.transaction(async (tx) => {
       const item = await tx.friendship.findFirst({
         where: { id, receiverId: userId, status: 'PENDING' },
@@ -152,7 +152,7 @@ export class FriendsService {
     });
   }
 
-  async remove(userId: string, id: string) {
+  async remove(userId: number, id: number) {
     const deleted = await this.prisma.friendship.deleteMany({
       where: {
         id,
@@ -170,7 +170,7 @@ export class FriendsService {
     return { success: true };
   }
 
-  async blocks(userId: string, { page = 1, limit = 20 }: FriendsQueryDto) {
+  async blocks(userId: number, { page = 1, limit = 20 }: FriendsQueryDto) {
     const where = { blockerId: userId };
     const [items, total] = await Promise.all([
       this.prisma.block.findMany({
@@ -188,7 +188,7 @@ export class FriendsService {
     };
   }
 
-  block(userId: string, targetId: string) {
+block(userId: number, targetId: number) {
     if (userId === targetId)
       throw new BadRequestException('Você não pode bloquear a si mesmo.');
     return this.transaction(async (tx) => {
@@ -210,7 +210,7 @@ export class FriendsService {
       return { success: true };
     });
   }
-  async unblock(userId: string, targetId: string) {
+  async unblock(userId: number, targetId: number) {
     await this.prisma.block.deleteMany({
       where: { blockerId: userId, blockedId: targetId },
     });

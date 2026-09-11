@@ -15,21 +15,21 @@ type GroupRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 const RANK: Record<GroupRole, number> = { OWNER: 3, ADMIN: 2, MEMBER: 1 };
 
 interface GroupRecord {
-  id: string;
+  id: number;
   name: string;
   description: string | null;
   avatar: string | null;
-  ownerId: string;
+  ownerId: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface GroupListItem {
-  id: string;
+  id: number;
   name: string;
   description: string | null;
   avatar: string | null;
-  ownerId: string;
+  ownerId: number;
   memberCount: number;
   role: GroupRole;
   linkedEventName: string | null;
@@ -39,7 +39,7 @@ export interface GroupListItem {
 }
 
 export interface MemberItem {
-  userId: string;
+  userId: number;
   name: string;
   username: string;
   avatar: string | null;
@@ -51,7 +51,7 @@ export interface MemberItem {
 export class GroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, dto: CreateGroupDto): Promise<GroupListItem> {
+  async create(userId: number, dto: CreateGroupDto): Promise<GroupListItem> {
     const group = await this.prisma.$transaction(async (tx) => {
       const created = await tx.group.create({
         data: {
@@ -73,7 +73,7 @@ export class GroupsService {
   }
 
   async findMyGroups(
-    userId: string,
+    userId: number,
     query: GroupsQueryDto,
   ): Promise<{ data: GroupListItem[]; meta: Record<string, unknown> }> {
     const { search, page = 1, limit = 20 } = query;
@@ -118,7 +118,7 @@ export class GroupsService {
     };
   }
 
-  async findOne(userId: string, groupId: string): Promise<GroupListItem> {
+  async findOne(userId: number, groupId: number): Promise<GroupListItem> {
     const membership = await this.requireMembership(userId, groupId);
     const group = await this.requireGroup(groupId);
 
@@ -130,8 +130,8 @@ export class GroupsService {
   }
 
   async findMembers(
-    userId: string,
-    groupId: string,
+    userId: number,
+    groupId: number,
   ): Promise<{ data: MemberItem[] }> {
     await this.requireMembership(userId, groupId);
     await this.requireGroup(groupId);
@@ -166,7 +166,7 @@ export class GroupsService {
     };
   }
 
-  async join(userId: string, groupId: string): Promise<GroupListItem> {
+  async join(userId: number, groupId: number): Promise<GroupListItem> {
     await this.requireGroup(groupId);
 
     const existing = await this.prisma.groupMember.findUnique({
@@ -189,9 +189,9 @@ export class GroupsService {
   }
 
   async addMember(
-    actorId: string,
-    groupId: string,
-    memberId: string,
+    actorId: number,
+    groupId: number,
+    memberId: number,
   ): Promise<{ data: MemberItem }> {
     const actor = await this.requireMembership(actorId, groupId);
     if (actor.role === 'MEMBER') {
@@ -243,7 +243,7 @@ export class GroupsService {
     };
   }
 
-  async leave(userId: string, groupId: string): Promise<{ success: boolean }> {
+  async leave(userId: number, groupId: number): Promise<{ success: boolean }> {
     const membership = await this.requireMembership(userId, groupId);
     await this.requireGroup(groupId);
 
@@ -278,9 +278,9 @@ export class GroupsService {
   }
 
   async removeMember(
-    actorId: string,
-    groupId: string,
-    memberId: string,
+    actorId: number,
+    groupId: number,
+    memberId: number,
   ): Promise<{ success: boolean }> {
     const actor = await this.requireMembership(actorId, groupId);
     const target = await this.findMembershipOrThrow(groupId, memberId);
@@ -314,8 +314,8 @@ export class GroupsService {
   }
 
   async update(
-    userId: string,
-    groupId: string,
+    userId: number,
+    groupId: number,
     dto: UpdateGroupDto,
   ): Promise<GroupListItem> {
     const membership = await this.requireMembership(userId, groupId);
@@ -352,9 +352,9 @@ export class GroupsService {
   }
 
   async changeRole(
-    actorId: string,
-    groupId: string,
-    memberId: string,
+    actorId: number,
+    groupId: number,
+    memberId: number,
     role: AssignableRole,
   ): Promise<{ data: MemberItem }> {
     const actor = await this.requireMembership(actorId, groupId);
@@ -409,7 +409,7 @@ export class GroupsService {
   // Helpers
   // ==========================================================================
 
-  async requireGroup(groupId: string) {
+  async requireGroup(groupId: number) {
     const group = await this.prisma.group.findUnique({
       where: { id: groupId },
     });
@@ -425,7 +425,7 @@ export class GroupsService {
     return group;
   }
 
-  async requireMembership(userId: string, groupId: string) {
+  async requireMembership(userId: number, groupId: number) {
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
     });
@@ -441,7 +441,7 @@ export class GroupsService {
     return membership;
   }
 
-  private async findMembershipOrThrow(groupId: string, userId: string) {
+  private async findMembershipOrThrow(groupId: number, userId: number) {
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
     });

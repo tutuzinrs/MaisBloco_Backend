@@ -16,7 +16,7 @@ export class FriendsQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) limit = 20;
 }
 export class FriendTargetDto {
-  @IsString() @MinLength(1) @MaxLength(100) userId: string;
+  @Type(() => Number) @IsInt() userId: number;
 }
 export class FriendActionDto {
   @IsIn(['accept', 'reject']) action: 'accept' | 'reject';

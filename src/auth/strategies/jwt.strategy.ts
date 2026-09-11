@@ -7,7 +7,7 @@ import { ApiError } from '../../common/errors/api-error';
 import { ErrorCode } from '../../common/errors/error-codes';
 
 interface JwtPayload {
-  sub: string;
+  sub: number;
   email: string;
 }
 
@@ -33,6 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: true,
         username: true,
         status: true,
+        role: true,
       },
     });
 
@@ -53,6 +54,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       username: user.username,
       userStatus: user.status,
+      role: user.role,
     };
   }
 }
