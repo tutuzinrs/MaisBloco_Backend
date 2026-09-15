@@ -180,6 +180,14 @@ export class UsersService {
     return this.findAdminById(id);
   }
 
+  async updateRole(id: number, role: 1 | 2) {
+    await this.findAdminById(id);
+
+    await this.prisma.user.update({ where: { id }, data: { role } });
+
+    return this.findAdminById(id);
+  }
+
   async countFriends(userId: number): Promise<{ count: number }> {
     const count = await this.prisma.friendship.count({
       where: {
