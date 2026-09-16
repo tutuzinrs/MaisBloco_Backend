@@ -45,6 +45,13 @@ enum EventStatus {
   CANCELLED
 }
 
+enum BlocoStatus {
+  UPCOMING
+  LIVE
+  FINISHED
+  CANCELLED
+}
+
 enum LocationSharingLevel {
   PRIVATE
   FRIENDS
@@ -316,6 +323,28 @@ model PinnedMessage {
   groupChat GroupChat @relation(fields: [groupChatId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, groupChatId])
+}
+
+model Bloco {
+  id              Int         @id @default(autoincrement())
+  name            String
+  description     String?
+  image           String?
+  city            String?
+  neighborhood    String?
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  startAt         DateTime?
+  endAt           DateTime?
+  status          BlocoStatus @default(UPCOMING)
+  estimatedPeople Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+  @@index([startAt])
+  @@index([city])
 }
 
 model Event {
