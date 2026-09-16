@@ -197,8 +197,11 @@ model Group {
   members GroupMember[]
   invites GroupInvite[]
   chat    GroupChat?
+  blocoId Int?
+  bloco   Event?        @relation("GroupBloco", fields: [blocoId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
+  @@index([blocoId])
 }
 
 model GroupMember {
@@ -352,8 +355,8 @@ model Event {
   name            String
   description     String?
   coverImage      String?
-  latitude        Float
-  longitude       Float
+  latitude        Float?
+  longitude       Float?
   address         String?
   startAt         DateTime
   endAt           DateTime?
@@ -369,6 +372,7 @@ model Event {
   participants  EventParticipant[]
   favorites     Favorite[]
   meetingPoints MeetingPoint[]
+  groups        Group[]             @relation("GroupBloco")
 
   @@index([startAt])
   @@index([latitude, longitude])

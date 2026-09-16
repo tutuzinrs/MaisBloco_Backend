@@ -38,6 +38,7 @@ describe("GroupsService", () => {
   let service: GroupsService;
   let groupMember: Record<string, jest.Mock>;
   let group: Record<string, jest.Mock>;
+  let event: Record<string, jest.Mock>;
   let user: Record<string, jest.Mock>;
   let transaction: jest.Mock;
 
@@ -59,6 +60,7 @@ describe("GroupsService", () => {
       delete: jest.fn(),
     };
     user = { findUnique: jest.fn() };
+    event = { findUnique: jest.fn() };
     transaction = jest.fn(async (work) =>
       typeof work === "function"
         ? work({ group, groupMember, user })
@@ -69,6 +71,7 @@ describe("GroupsService", () => {
       group,
       groupMember,
       user,
+      event,
       $transaction: transaction,
     };
 
@@ -531,13 +534,15 @@ describe("GroupsService", () => {
         description: "nova",
       });
 
-      expect(group.update).toHaveBeenCalledWith({
-        where: { id: "group_1" },
-        data: expect.objectContaining({
-          name: "Novo Nome",
-          description: "nova",
+      expect(group.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "group_1" },
+          data: expect.objectContaining({
+            name: "Novo Nome",
+            description: "nova",
+          }),
         }),
-      });
+      );
       expect(result).toMatchObject({ name: "Novo Nome" });
     });
 
@@ -550,10 +555,12 @@ describe("GroupsService", () => {
       const dto = { name: "Ok", ownerId: "hacker" } as never;
       await service.update("user_1", "group_1", dto as never);
 
-      expect(group.update).toHaveBeenCalledWith({
-        where: { id: "group_1" },
-        data: expect.not.objectContaining({ ownerId: "hacker" }),
-      });
+      expect(group.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "group_1" },
+          data: expect.not.objectContaining({ ownerId: "hacker" }),
+        }),
+      );
     });
 
     it("rejects non-OWNER updates with FORBIDDEN", async () => {
@@ -652,6 +659,112 @@ describe("GroupsService", () => {
       ).rejects.toMatchObject({
         code: ErrorCode.GROUP_NOT_MEMBER,
       });
+    });
+  });
+
+  describe("linkBloco / unlinkBloco", () => {
+    const blocoRecord = {
+      id: 7,
+      name: "Cordão da Bola Preta",
+      description: "Bloco histórico",
+      coverImage: null,
+      latitude: -22.9121,
+      longitude: -43.1775,
+      address: "Av. Rio Branco, 100",
+      startAt: new Date("2027-02-06T10:00:00Z"),
+      endAt: null,
+    };
+
+    it("lets an OWNER link an existing event as the group bloco", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "OWNER" }));
+      event.findUnique.mockResolvedValue({ id: 7 });
+      group.update.mockResolvedValue(groupMock({ bloco: blocoRecord }));
+      groupMember.count.mockResolvedValue(4);
+
+      const result = await service.linkBloco("user_1", "group_1", 7);
+
+      expect(event.findUnique).toHaveBeenCalledWith({
+        where: { id: 7 },
+        select: { id: true },
+      });
+      expect(group.update).toHaveBeenCalledWith({
+        where: { id: "group_1" },
+        data: { blocoId: 7 },
+        include: { bloco: true },
+      });
+      expect(result).toMatchObject({
+        linkedEventName: "Cordão da Bola Preta",
+        bloco: {
+          id: 7,
+          name: "Cordão da Bola Preta",
+          address: "Av. Rio Branco, 100",
+          startAt: "2027-02-06T10:00:00.000Z",
+          endAt: null,
+        },
+      });
+    });
+
+    it("lets an ADMIN link an existing event too", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "ADMIN" }));
+      event.findUnique.mockResolvedValue({ id: 7 });
+      group.update.mockResolvedValue(groupMock({ bloco: blocoRecord }));
+      groupMember.count.mockResolvedValue(3);
+
+      const result = await service.linkBloco("user_1", "group_1", 7);
+
+      expect(result.bloco?.name).toBe("Cordão da Bola Preta");
+    });
+
+    it("rejects a MEMBER actor with FORBIDDEN", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "MEMBER" }));
+
+      await expect(
+        service.linkBloco("user_1", "group_1", 7),
+      ).rejects.toMatchObject({
+        code: ErrorCode.GROUP_ROLE_FORBIDDEN,
+        status: HttpStatus.FORBIDDEN,
+      });
+      expect(event.findUnique).not.toHaveBeenCalled();
+      expect(group.update).not.toHaveBeenCalled();
+    });
+
+    it("throws BLOCO_NOT_FOUND when the event does not exist", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "OWNER" }));
+      event.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.linkBloco("user_1", "group_1", 99),
+      ).rejects.toMatchObject({
+        code: ErrorCode.BLOCO_NOT_FOUND,
+        status: HttpStatus.NOT_FOUND,
+      });
+      expect(group.update).not.toHaveBeenCalled();
+    });
+
+    it("unlinks the bloco (sets blocoId null)", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "OWNER" }));
+      group.update.mockResolvedValue(groupMock());
+      groupMember.count.mockResolvedValue(4);
+
+      const result = await service.unlinkBloco("user_1", "group_1");
+
+      expect(group.update).toHaveBeenCalledWith({
+        where: { id: "group_1" },
+        data: { blocoId: null },
+        include: { bloco: true },
+      });
+      expect(result).toMatchObject({ bloco: null });
+    });
+
+    it("rejects unlink for a MEMBER", async () => {
+      groupMember.findUnique.mockResolvedValue(membershipMock({ role: "MEMBER" }));
+
+      await expect(
+        service.unlinkBloco("user_1", "group_1"),
+      ).rejects.toMatchObject({
+        code: ErrorCode.GROUP_ROLE_FORBIDDEN,
+      });
+      expect(group.update).not.toHaveBeenCalled();
     });
   });
 });
