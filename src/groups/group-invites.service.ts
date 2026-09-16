@@ -1,13 +1,14 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { GroupInviteStatus, Prisma } from '@prisma/client';
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { GroupInviteStatus, Prisma } from "@prisma/client";
 
-import { PrismaService } from '../prisma/prisma.service';
-import { ApiError } from '../common/errors/api-error';
-import { ErrorCode } from '../common/errors/error-codes';
+import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { ApiError } from "../common/errors/api-error";
+import { ErrorCode } from "../common/errors/error-codes";
 
-import { GroupsService } from './groups.service';
-import { CreateGroupInvitesDto } from './dto/create-group-invites.dto';
-import { GroupInvitesQueryDto } from './dto/group-invites-query.dto';
+import { GroupsService } from "./groups.service";
+import { CreateGroupInvitesDto } from "./dto/create-group-invites.dto";
+import { GroupInvitesQueryDto } from "./dto/group-invites-query.dto";
 
 type Tx = Prisma.TransactionClient;
 
@@ -78,9 +79,9 @@ interface InviteRecordWithUsers {
 }
 
 const REACTIVATABLE_STATUSES: GroupInviteStatus[] = [
-  'REJECTED',
-  'CANCELLED',
-  'EXPIRED',
+  "REJECTED",
+  "CANCELLED",
+  "EXPIRED",
 ];
 
 @Injectable()
@@ -88,6 +89,7 @@ export class GroupInvitesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groupsService: GroupsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(
@@ -99,12 +101,12 @@ export class GroupInvitesService {
       actorId,
       groupId,
     );
-    await this.groupsService.requireGroup(groupId);
+    const group = await this.groupsService.requireGroup(groupId);
 
-    if (membership.role === 'MEMBER') {
+    if (membership.role === "MEMBER") {
       throw new ApiError(
         ErrorCode.GROUP_ROLE_FORBIDDEN,
-        'Somente o dono do grupo e os administradores podem convidar pessoas.',
+        "Somente o dono do grupo e os administradores podem convidar pessoas.",
         HttpStatus.FORBIDDEN,
       );
     }
@@ -113,13 +115,14 @@ export class GroupInvitesService {
 
     const results = await this.prisma.$transaction(async (tx) => {
       const data: GroupInviteItem[] = [];
-      const failed: CreateInvitesResult['failed'] = [];
+      const failed: CreateInvitesResult["failed"] = [];
 
       for (const inviteeId of userIds) {
         const outcome = await this.createOne(tx, {
           actorId,
           groupId,
           inviteeId,
+          groupName: group.name,
         });
 
         if (outcome.item) {
@@ -146,9 +149,9 @@ export class GroupInvitesService {
 
     const where: Prisma.GroupInviteWhereInput = {
       inviteeId: userId,
-      status: 'PENDING',
+      status: "PENDING",
       ...(search
-        ? { group: { name: { contains: search.trim(), mode: 'insensitive' } } }
+        ? { group: { name: { contains: search.trim(), mode: "insensitive" } } }
         : {}),
     };
 
@@ -161,7 +164,7 @@ export class GroupInvitesService {
             select: { id: true, name: true, username: true, avatar: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -207,10 +210,10 @@ export class GroupInvitesService {
 
     const where: Prisma.GroupInviteWhereInput = {
       inviterId: userId,
-      status: { in: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'] },
+      status: { in: ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED"] },
       ...(search
         ? {
-            invitee: { name: { contains: search.trim(), mode: 'insensitive' } },
+            invitee: { name: { contains: search.trim(), mode: "insensitive" } },
           }
         : {}),
     };
@@ -224,7 +227,7 @@ export class GroupInvitesService {
             select: { id: true, name: true, username: true, avatar: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -264,16 +267,16 @@ export class GroupInvitesService {
     );
     await this.groupsService.requireGroup(groupId);
 
-    if (membership.role === 'MEMBER') {
+    if (membership.role === "MEMBER") {
       throw new ApiError(
         ErrorCode.GROUP_ROLE_FORBIDDEN,
-        'Somente o dono do grupo e os administradores podem ver convites pendentes.',
+        "Somente o dono do grupo e os administradores podem ver convites pendentes.",
         HttpStatus.FORBIDDEN,
       );
     }
 
     const invites = await this.prisma.groupInvite.findMany({
-      where: { groupId, status: 'PENDING' },
+      where: { groupId, status: "PENDING" },
       include: {
         inviter: {
           select: { id: true, name: true, username: true, avatar: true },
@@ -282,7 +285,7 @@ export class GroupInvitesService {
           select: { id: true, name: true, username: true, avatar: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return {
@@ -304,7 +307,7 @@ export class GroupInvitesService {
       if (!invite) {
         throw new ApiError(
           ErrorCode.GROUP_INVITE_NOT_FOUND,
-          'Convite não encontrado.',
+          "Convite não encontrado.",
           HttpStatus.NOT_FOUND,
         );
       }
@@ -312,7 +315,7 @@ export class GroupInvitesService {
       if (invite.inviteeId !== inviteeId) {
         throw new ApiError(
           ErrorCode.GROUP_INVITE_FORBIDDEN,
-          'Este convite não foi enviado para você.',
+          "Este convite não foi enviado para você.",
           HttpStatus.FORBIDDEN,
         );
       }
@@ -320,28 +323,28 @@ export class GroupInvitesService {
       if (this.isExpired(invite.expiresAt)) {
         throw new ApiError(
           ErrorCode.GROUP_INVITE_EXPIRED,
-          'Este convite expirou.',
+          "Este convite expirou.",
           HttpStatus.CONFLICT,
         );
       }
 
-      if (invite.status !== 'PENDING') {
+      if (invite.status !== "PENDING") {
         throw new ApiError(
           ErrorCode.GROUP_INVITE_NOT_PENDING,
-          'Este convite não está mais pendente.',
+          "Este convite não está mais pendente.",
           HttpStatus.CONFLICT,
         );
       }
 
       const group = await tx.group.findUnique({
         where: { id: invite.groupId },
-        select: { id: true },
+        select: { id: true, name: true },
       });
 
       if (!group) {
         throw new ApiError(
           ErrorCode.GROUP_NOT_FOUND,
-          'O grupo deste convite não existe mais.',
+          "O grupo deste convite não existe mais.",
           HttpStatus.NOT_FOUND,
         );
       }
@@ -355,7 +358,7 @@ export class GroupInvitesService {
       if (existingMember) {
         throw new ApiError(
           ErrorCode.GROUP_ALREADY_MEMBER,
-          'Você já participa deste grupo.',
+          "Você já participa deste grupo.",
           HttpStatus.CONFLICT,
         );
       }
@@ -364,18 +367,60 @@ export class GroupInvitesService {
         where: {
           groupId: invite.groupId,
           inviteeId,
-          status: 'ACCEPTED',
+          status: "ACCEPTED",
+          id: { not: invite.id },
         },
       });
 
+      const claimed = await tx.groupInvite.updateMany({
+        where: { id: invite.id, status: "PENDING" },
+        data: { status: "ACCEPTED" },
+      });
+      if (!claimed.count)
+        throw new ApiError(
+          ErrorCode.GROUP_INVITE_NOT_PENDING,
+          "Este convite não está mais pendente.",
+          HttpStatus.CONFLICT,
+        );
+
       await tx.groupMember.create({
-        data: { groupId: invite.groupId, userId: inviteeId, role: 'MEMBER' },
+        data: { groupId: invite.groupId, userId: inviteeId, role: "MEMBER" },
       });
 
-      await tx.groupInvite.update({
-        where: { id: invite.id },
-        data: { status: 'ACCEPTED' },
-      });
+      if (invite.inviterId !== inviteeId) {
+        const inviter = await tx.user.findUnique({
+          where: { id: invite.inviterId },
+          select: { id: true, name: true, username: true, avatar: true },
+        });
+
+        if (inviter) {
+          const invitee = await tx.user.findUnique({
+            where: { id: inviteeId },
+            select: { id: true, name: true, username: true, avatar: true },
+          });
+
+          if (invitee) {
+            await this.notifications.create(tx, {
+              userId: invite.inviterId,
+              category: "groupActivity",
+              title: "Convite aceito",
+              body: `${invitee.name} aceitou o convite para o grupo "${group.name}".`,
+              data: {
+                type: "GROUP_INVITE_ACCEPTED",
+                groupId: invite.groupId,
+                groupName: group.name,
+                inviteId: invite.id,
+                actor: {
+                  id: invitee.id,
+                  name: invitee.name,
+                  username: invitee.username,
+                  avatar: invitee.avatar,
+                },
+              },
+            });
+          }
+        }
+      }
 
       return { success: true as const, groupId: invite.groupId };
     });
@@ -392,7 +437,7 @@ export class GroupInvitesService {
     if (!invite) {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_NOT_FOUND,
-        'Convite não encontrado.',
+        "Convite não encontrado.",
         HttpStatus.NOT_FOUND,
       );
     }
@@ -400,25 +445,56 @@ export class GroupInvitesService {
     if (invite.inviteeId !== inviteeId) {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_FORBIDDEN,
-        'Este convite não foi enviado para você.',
+        "Este convite não foi enviado para você.",
         HttpStatus.FORBIDDEN,
       );
     }
 
-    if (invite.status !== 'PENDING') {
+    if (invite.status !== "PENDING") {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_NOT_PENDING,
-        'Este convite não está mais pendente.',
+        "Este convite não está mais pendente.",
         HttpStatus.CONFLICT,
       );
     }
 
-    await this.prisma.groupInvite.update({
-      where: { id: invite.id },
-      data: { status: 'REJECTED' },
+    return this.prisma.$transaction(async (tx) => {
+      const changed = await tx.groupInvite.updateMany({
+        where: { id: invite.id, status: "PENDING" },
+        data: { status: "REJECTED" },
+      });
+      if (!changed.count)
+        throw new ApiError(
+          ErrorCode.GROUP_INVITE_NOT_PENDING,
+          "Este convite não está mais pendente.",
+          HttpStatus.CONFLICT,
+        );
+      const [group, actor] = await Promise.all([
+        tx.group.findUnique({
+          where: { id: invite.groupId },
+          select: { name: true },
+        }),
+        tx.user.findUnique({
+          where: { id: inviteeId },
+          select: { id: true, name: true, username: true, avatar: true },
+        }),
+      ]);
+      if (group && actor && invite.inviterId !== inviteeId)
+        await this.notifications.create(tx, {
+          userId: invite.inviterId,
+          category: "groupInvites",
+          title: "Convite recusado",
+          body: `${actor.name} recusou o convite para o grupo "${group.name}".`,
+          data: {
+            type: "GROUP_INVITE_REJECTED",
+            groupId: invite.groupId,
+            groupName: group.name,
+            inviteId: invite.id,
+            actor,
+          },
+        });
+      return { success: true };
     });
-
-    return { success: true };
   }
 
   async cancel(
@@ -438,33 +514,64 @@ export class GroupInvitesService {
     if (!invite) {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_NOT_FOUND,
-        'Convite não encontrado.',
+        "Convite não encontrado.",
         HttpStatus.NOT_FOUND,
       );
     }
 
-    if (membership.role === 'MEMBER' && invite.inviterId !== actorId) {
+    if (membership.role === "MEMBER" && invite.inviterId !== actorId) {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_FORBIDDEN,
-        'Você não pode cancelar este convite.',
+        "Você não pode cancelar este convite.",
         HttpStatus.FORBIDDEN,
       );
     }
 
-    if (invite.status !== 'PENDING') {
+    if (invite.status !== "PENDING") {
       throw new ApiError(
         ErrorCode.GROUP_INVITE_NOT_PENDING,
-        'Este convite não está mais pendente.',
+        "Este convite não está mais pendente.",
         HttpStatus.CONFLICT,
       );
     }
 
-    await this.prisma.groupInvite.update({
-      where: { id: invite.id },
-      data: { status: 'CANCELLED' },
+    return this.prisma.$transaction(async (tx) => {
+      const changed = await tx.groupInvite.updateMany({
+        where: { id: invite.id, status: "PENDING" },
+        data: { status: "CANCELLED" },
+      });
+      if (!changed.count)
+        throw new ApiError(
+          ErrorCode.GROUP_INVITE_NOT_PENDING,
+          "Este convite não está mais pendente.",
+          HttpStatus.CONFLICT,
+        );
+      const [group, actor] = await Promise.all([
+        tx.group.findUnique({
+          where: { id: invite.groupId },
+          select: { name: true },
+        }),
+        tx.user.findUnique({
+          where: { id: actorId },
+          select: { id: true, name: true, username: true, avatar: true },
+        }),
+      ]);
+      if (group && actor && invite.inviteeId !== actorId)
+        await this.notifications.create(tx, {
+          userId: invite.inviteeId,
+          category: "groupInvites",
+          title: "Convite cancelado",
+          body: `${actor.name} cancelou o convite para o grupo "${group.name}".`,
+          data: {
+            type: "GROUP_INVITE_CANCELLED",
+            groupId: invite.groupId,
+            groupName: group.name,
+            inviteId: invite.id,
+            actor,
+          },
+        });
+      return { success: true };
     });
-
-    return { success: true };
   }
 
   // ==========================================================================
@@ -473,18 +580,23 @@ export class GroupInvitesService {
 
   private async createOne(
     tx: Tx,
-    params: { actorId: number; groupId: number; inviteeId: number },
+    params: {
+      actorId: number;
+      groupId: number;
+      inviteeId: number;
+      groupName: string;
+    },
   ): Promise<
     | { item: GroupInviteItem; error?: undefined }
     | { item?: undefined; error: { code: ErrorCode; message: string } }
   > {
-    const { actorId, groupId, inviteeId } = params;
+    const { actorId, groupId, inviteeId, groupName } = params;
 
     if (inviteeId === actorId) {
       return {
         error: {
           code: ErrorCode.GROUP_INVITE_SELF,
-          message: 'Você não pode se convidar para o próprio grupo.',
+          message: "Você não pode se convidar para o próprio grupo.",
         },
       };
     }
@@ -500,11 +612,11 @@ export class GroupInvitesService {
       },
     });
 
-    if (!target || target.status !== 'ACTIVE') {
+    if (!target || target.status !== "ACTIVE") {
       return {
         error: {
           code: ErrorCode.GROUP_INVITE_TARGET_UNAVAILABLE,
-          message: 'Usuário não encontrado ou indisponível.',
+          message: "Usuário não encontrado ou indisponível.",
         },
       };
     }
@@ -517,7 +629,7 @@ export class GroupInvitesService {
       return {
         error: {
           code: ErrorCode.GROUP_ALREADY_MEMBER,
-          message: 'Este usuário já participa do grupo.',
+          message: "Este usuário já participa do grupo.",
         },
       };
     }
@@ -527,7 +639,7 @@ export class GroupInvitesService {
       return {
         error: {
           code: ErrorCode.GROUP_INVITE_BLOCKED,
-          message: 'Não é possível convidar este usuário.',
+          message: "Não é possível convidar este usuário.",
         },
       };
     }
@@ -538,7 +650,7 @@ export class GroupInvitesService {
         inviteeId,
         status: { in: REACTIVATABLE_STATUSES },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         inviter: {
           select: { id: true, name: true, username: true, avatar: true },
@@ -552,13 +664,32 @@ export class GroupInvitesService {
     if (existingInvite) {
       const updated = await tx.groupInvite.update({
         where: { id: existingInvite.id },
-        data: { status: 'PENDING', inviterId: actorId },
+        data: { status: "PENDING", inviterId: actorId },
         include: {
           inviter: {
             select: { id: true, name: true, username: true, avatar: true },
           },
           invitee: {
             select: { id: true, name: true, username: true, avatar: true },
+          },
+        },
+      });
+
+      await this.notifications.create(tx, {
+        userId: inviteeId,
+        category: "groupInvites",
+        title: "Novo convite para grupo",
+        body: `${updated.inviter.name} convidou você para o grupo "${groupName}".`,
+        data: {
+          type: "GROUP_INVITE",
+          groupId,
+          groupName,
+          inviteId: updated.id,
+          actor: {
+            id: updated.inviter.id,
+            name: updated.inviter.name,
+            username: updated.inviter.username,
+            avatar: updated.inviter.avatar,
           },
         },
       });
@@ -572,7 +703,7 @@ export class GroupInvitesService {
           groupId,
           inviterId: actorId,
           inviteeId,
-          status: 'PENDING',
+          status: "PENDING",
         },
         include: {
           inviter: {
@@ -584,16 +715,35 @@ export class GroupInvitesService {
         },
       });
 
+      await this.notifications.create(tx, {
+        userId: inviteeId,
+        category: "groupInvites",
+        title: "Novo convite para grupo",
+        body: `${created.inviter.name} convidou você para o grupo "${groupName}".`,
+        data: {
+          type: "GROUP_INVITE",
+          groupId,
+          groupName,
+          inviteId: created.id,
+          actor: {
+            id: created.inviter.id,
+            name: created.inviter.name,
+            username: created.inviter.username,
+            avatar: created.inviter.avatar,
+          },
+        },
+      });
+
       return { item: this.mapGroupInviteItem(created) };
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
+        err.code === "P2002"
       ) {
         return {
           error: {
             code: ErrorCode.GROUP_INVITE_DUPLICATE,
-            message: 'Este usuário já possui um convite pendente para o grupo.',
+            message: "Este usuário já possui um convite pendente para o grupo.",
           },
         };
       }
@@ -646,7 +796,7 @@ export class GroupInvitesService {
     expiresAt: Date | null,
     now: Date = new Date(),
   ): GroupInviteStatus {
-    if (expiresAt && expiresAt.getTime() <= now.getTime()) return 'EXPIRED';
-    return 'PENDING';
+    if (expiresAt && expiresAt.getTime() <= now.getTime()) return "EXPIRED";
+    return "PENDING";
   }
 }

@@ -19,7 +19,7 @@ describe('FriendsService permissions', () => {
     service = new FriendsService({
       ...tx,
       $transaction: (work: (client: typeof tx) => unknown) => work(tx),
-    } as unknown as PrismaService);
+    } as unknown as PrismaService, { create: jest.fn() } as never);
   });
   it('rejects an attempt to accept another user request', async () => {
     tx.friendship.findFirst.mockResolvedValue(null);
