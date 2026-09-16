@@ -107,6 +107,7 @@ model User {
   sentMessages         Message[]                 @relation("MessageSender")
   eventParticipants    EventParticipant[]
   location             Location?
+  pushDevices          PushDevice[]
   notifications        Notification[]
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
@@ -460,6 +461,7 @@ model Report {
 }
 
 model Notification {
+  pushDeliveries PushDelivery[]
   id        Int      @id @default(autoincrement())
   userId    Int
   title     String
@@ -482,4 +484,49 @@ model NotificationPreferences {
   favoriteEvents Boolean @default(true)
   eventReminders Boolean @default(true)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum PushDeliveryStatus {
+  PENDING
+  RECEIPT
+  DONE
+  FAILED
+  CANCELLED
+}
+
+model PushDevice {
+  id String @id @db.Uuid
+  userId Int
+  token String @unique
+  platform String
+  secretHash String
+  version Int @default(1)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries PushDelivery[]
+  @@index([userId, active])
+}
+
+model PushDelivery {
+  id Int @id @default(autoincrement())
+  notificationId Int
+  deviceId String @db.Uuid
+  token String
+  deviceVersion Int
+  status PushDeliveryStatus @default(PENDING)
+  attempts Int @default(0)
+  receiptAttempts Int @default(0)
+  ticketId String?
+  lastError String?
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  claimId String? @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  device PushDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  @@unique([notificationId, deviceId])
+  @@index([status, nextAttemptAt])
 }
