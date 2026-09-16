@@ -283,5 +283,32 @@ describe('LocationsService', () => {
 
       expect(result[0].userId).toBe(20);
     });
+
+    it('includes the group creator (OWNER) when they share their location', async () => {
+      groupMember.findMany.mockResolvedValue([
+        member(5, {
+          role: 'OWNER',
+          user: { ...member(5).user, locationSharingLevel: 'GROUP' },
+        }),
+      ]);
+
+      const result = await service.listGroupLocations(10, 1);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ userId: 5, name: 'Nome 5' });
+    });
+
+    it('applies the creator privacy level like any other member', async () => {
+      groupMember.findMany.mockResolvedValue([
+        member(5, {
+          role: 'OWNER',
+          user: { ...member(5).user, locationSharingLevel: 'PRIVATE' },
+        }),
+      ]);
+
+      const result = await service.listGroupLocations(10, 1);
+
+      expect(result).toHaveLength(0);
+    });
   });
 });
