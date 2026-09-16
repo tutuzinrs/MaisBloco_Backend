@@ -8,6 +8,8 @@
   "scripts": {
     "build": "nest build",
     "build:vercel": "tsc -p tsconfig.vercel.json",
+    "vercel-build": "prisma generate",
+    "postinstall": "prisma generate",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
