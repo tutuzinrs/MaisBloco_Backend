@@ -66,6 +66,9 @@
     "typescript": "^6.0.2"
   },
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "directories": {
     "test": "test"
   },
