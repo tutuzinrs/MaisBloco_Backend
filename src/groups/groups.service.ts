@@ -23,6 +23,29 @@ interface GroupRecord {
   ownerId: number;
   createdAt: Date;
   updatedAt: Date;
+  bloco?: {
+    id: number;
+    name: string;
+    description: string | null;
+    coverImage: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    address: string | null;
+    startAt: Date;
+    endAt: Date | null;
+  } | null;
+}
+
+export interface GroupBlocoItem {
+  id: number;
+  name: string;
+  description: string | null;
+  coverImage: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  startAt: string | null;
+  endAt: string | null;
 }
 
 export interface GroupListItem {
@@ -34,6 +57,7 @@ export interface GroupListItem {
   memberCount: number;
   role: GroupRole;
   linkedEventName: string | null;
+  bloco: GroupBlocoItem | null;
   lastActivity: string | null;
   createdAt: string;
   updatedAt: string;
@@ -92,7 +116,10 @@ export class GroupsService {
         where,
         include: {
           group: {
-            include: { _count: { select: { members: true } } },
+            include: {
+              _count: { select: { members: true } },
+              bloco: true,
+            },
           },
         },
         orderBy: { joinedAt: "desc" },
@@ -477,7 +504,11 @@ export class GroupsService {
       const previous = await tx.group.findUniqueOrThrow({
         where: { id: groupId },
       });
-      const updated = await tx.group.update({ where: { id: groupId }, data });
+      const updated = await tx.group.update({
+        where: { id: groupId },
+        data,
+        include: { bloco: true },
+      });
       const changed =
         previous.name !== updated.name ||
         previous.description !== updated.description ||
@@ -614,6 +645,7 @@ export class GroupsService {
   async requireGroup(groupId: number) {
     const group = await this.prisma.group.findUnique({
       where: { id: groupId },
+      include: { bloco: true },
     });
 
     if (!group) {
@@ -674,6 +706,20 @@ export class GroupsService {
     memberCount: number,
     role: GroupRole,
   ): GroupListItem {
+    const bloco: GroupBlocoItem | null = group.bloco
+      ? {
+          id: group.bloco.id,
+          name: group.bloco.name,
+          description: group.bloco.description,
+          coverImage: group.bloco.coverImage,
+          latitude: group.bloco.latitude,
+          longitude: group.bloco.longitude,
+          address: group.bloco.address,
+          startAt: group.bloco.startAt.toISOString(),
+          endAt: group.bloco.endAt ? group.bloco.endAt.toISOString() : null,
+        }
+      : null;
+
     return {
       id: group.id,
       name: group.name,
@@ -682,10 +728,72 @@ export class GroupsService {
       ownerId: group.ownerId,
       memberCount,
       role,
-      linkedEventName: null,
+      linkedEventName: bloco?.name ?? null,
+      bloco,
       lastActivity: null,
       createdAt: group.createdAt.toISOString(),
       updatedAt: group.updatedAt.toISOString(),
     };
+  }
+
+  async linkBloco(
+    userId: number,
+    groupId: number,
+    eventId: number,
+  ): Promise<GroupListItem> {
+    const membership = await this.requireMembership(userId, groupId);
+    this.requireBlocoManagement(membership.role);
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true },
+    });
+    if (!event) {
+      throw new ApiError(
+        ErrorCode.BLOCO_NOT_FOUND,
+        'Bloco não encontrado.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const updated = await this.prisma.group.update({
+      where: { id: groupId },
+      data: { blocoId: eventId },
+      include: { bloco: true },
+    });
+    const memberCount = await this.prisma.groupMember.count({
+      where: { groupId },
+    });
+
+    return this.mapGroup(updated, memberCount, membership.role);
+  }
+
+  async unlinkBloco(
+    userId: number,
+    groupId: number,
+  ): Promise<GroupListItem> {
+    const membership = await this.requireMembership(userId, groupId);
+    this.requireBlocoManagement(membership.role);
+
+    const updated = await this.prisma.group.update({
+      where: { id: groupId },
+      data: { blocoId: null },
+      include: { bloco: true },
+    });
+    const memberCount = await this.prisma.groupMember.count({
+      where: { groupId },
+    });
+
+    return this.mapGroup(updated, memberCount, membership.role);
+  }
+
+  private requireBlocoManagement(role: GroupRole) {
+    if (role === 'MEMBER') {
+      throw new ApiError(
+        ErrorCode.GROUP_ROLE_FORBIDDEN,
+        'Somente administradores podem definir o bloco do grupo.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
   }
 }

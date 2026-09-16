@@ -25,6 +25,7 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { GroupsQueryDto } from './dto/groups-query.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { LinkBlocoDto } from './dto/link-bloco.dto';
 import { CreateGroupInvitesDto } from './dto/create-group-invites.dto';
 import { GroupInvitesQueryDto } from './dto/group-invites-query.dto';
 
@@ -121,6 +122,24 @@ export class GroupsController {
   @HttpCode(HttpStatus.OK)
   join(@Req() req: AuthRequest, @Param('groupId', ParseIntPipe) groupId: number) {
     return this.groupsService.join(req.user.sub, groupId);
+  }
+
+  @Post(':groupId/bloco')
+  linkBloco(
+    @Req() req: AuthRequest,
+    @Param('groupId', ParseIntPipe) groupId: number,
+    @Body() dto: LinkBlocoDto,
+  ) {
+    return this.groupsService.linkBloco(req.user.sub, groupId, dto.eventId);
+  }
+
+  @Delete(':groupId/bloco')
+  @HttpCode(HttpStatus.OK)
+  unlinkBloco(
+    @Req() req: AuthRequest,
+    @Param('groupId', ParseIntPipe) groupId: number,
+  ) {
+    return this.groupsService.unlinkBloco(req.user.sub, groupId);
   }
 
   @Post(':groupId/members')
