@@ -3,11 +3,8 @@ import {
   IsIn,
   IsInt,
   IsOptional,
-  IsString,
   Max,
-  MaxLength,
   Min,
-  MinLength,
 } from 'class-validator';
 export class FriendsQueryDto {
   @IsOptional() @IsIn(['friends', 'received', 'sent']) tab:

@@ -7,9 +7,12 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "build:vercel": "tsc -p tsconfig.vercel.json",
+    "vercel-build": "prisma generate",
+    "postinstall": "prisma generate",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -18,7 +21,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
+    "typecheck": "tsc --project tsconfig.build.json --noEmit --incremental false"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -64,6 +68,9 @@
     "typescript": "^6.0.2"
   },
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "directories": {
     "test": "test"
   },
