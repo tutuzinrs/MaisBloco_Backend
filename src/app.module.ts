@@ -9,6 +9,7 @@ import { EventsModule } from './events/events.module';
 import { GroupsModule } from './groups/groups.module';
 import { LocationsModule } from './locations/locations.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ReportsModule } from './reports/reports.module';
 import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
@@ -26,6 +27,7 @@ import { ConfigModule } from '@nestjs/config';
     FriendsModule,
     NotificationsModule,
     PushModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
