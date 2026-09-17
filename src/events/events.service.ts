@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CodanteProvider } from './providers/codante.provider';
 import { EventsQueryDto } from './dto/events-query.dto';
 import { EventResponseDto } from './dto/event-response.dto';
+import { CreateEventDto } from './dto/create-event.dto';
 
 const EARTH_RADIUS_KM = 6371;
 const MAX_LOCAL_EVENTS = 500;
@@ -16,6 +17,29 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly codante: CodanteProvider,
   ) { }
+
+  async create(dto: CreateEventDto): Promise<EventResponseDto> {
+    const event = await this.prisma.event.create({
+      data: {
+        name: dto.name.trim(),
+        description: dto.description?.trim() || null,
+        coverImage: dto.coverImage ?? null,
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
+        address: dto.address?.trim() || null,
+        startAt: new Date(dto.startAt),
+        endAt: dto.endAt ? new Date(dto.endAt) : null,
+        category: dto.category ?? null,
+        status: dto.status ?? 'UPCOMING',
+        estimatedPeople: dto.estimatedPeople ?? null,
+        externalLink: dto.externalLink ?? null,
+        isPaid: dto.isPaid ?? false,
+        price: dto.price ?? null,
+      },
+    });
+
+    return mapLocalEvent(event);
+  }
 
   async findAll(query: EventsQueryDto) {
     const {
