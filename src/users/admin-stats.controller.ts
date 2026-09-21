@@ -129,7 +129,7 @@ export class AdminStatsController {
       this.prisma.report.findMany({
         orderBy: { createdAt: 'desc' },
         take: 3,
-        select: { reason: true, createdAt: true },
+        select: { title: true, reason: true, createdAt: true },
       }),
       this.prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
@@ -146,7 +146,7 @@ export class AdminStatsController {
     const recentActivity = [
       ...recentReports.map((r) => ({
         type: 'REPORT' as const,
-        description: `Denúncia: "${r.reason}"`,
+        description: `Reporte: "${r.title ?? r.reason}"`,
         createdAt: r.createdAt,
       })),
       ...recentUsers.map((u) => ({

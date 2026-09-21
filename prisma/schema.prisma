@@ -452,9 +452,13 @@ model Report {
   reporterId  Int
   reportedId  Int?
   messageId   String?
+  title       String?
   reason      String
   description String?
+  imageUrl    String?
+  resolution  String?
   resolved    Boolean  @default(false)
+  resolvedAt  DateTime?
   createdAt   DateTime @default(now())
 
   reporter User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
@@ -462,6 +466,7 @@ model Report {
 
   @@index([reporterId])
   @@index([resolved])
+  @@index([createdAt])
 }
 
 model Notification {
